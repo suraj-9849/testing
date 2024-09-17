@@ -1,3 +1,5 @@
 key.json
 .env
 .vercel
+firebaseAdmin.json
+node_modules/

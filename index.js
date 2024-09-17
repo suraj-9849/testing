@@ -3,13 +3,15 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const vision = require("@google-cloud/vision");
+const messaging = require('./firebaseAdmin');
+const { supabase } = require('./supabaseClient');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({ origin: "*" }));
 
-app.use(express.json());
+app.use(bodyParser.json());
 
 const client = new vision.ImageAnnotatorClient({
   credentials: {
@@ -72,10 +74,44 @@ app.post("/", async (req, res) => {
   }
 });
 
-app.post("/store-token", (req, res) => {
-  const { token } = req.body;
-  console.log("Received FCM Token:", token);
-  res.status(200).send("Token received and stored.");
+app.post('/store-token', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).send('Missing FCM token');
+    }
+
+    const { data, error } = await supabase
+        .from('fcm_tokens')
+        .insert([{ token: token }]);
+
+    if (error) {
+        console.error('Error storing FCM token:', error);
+        return res.status(500).send('Error storing FCM token');
+    }
+
+    return res.status(200).send('FCM token received and stored.');
+});
+
+app.post('/send-notification', async (req, res) => {
+    const { token, title, body } = req.body;
+    if (!token || !title || !body) {
+        return res.status(400).send('Missing token, title, or body');
+    }
+    const message = {
+        notification: {
+            title: title,
+            body: body,
+        },
+        token: token,
+    };
+    try {
+        const response = await messaging.send(message);
+        return res.status(200).send(`Notification sent successfully: ${response}`);
+    } catch (error) {
+        console.error('Error sending notification:', error);
+        return res.status(500).send('Error sending notification');
+    }
 });
 
 app.listen(port, () => {
