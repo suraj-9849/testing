@@ -41,6 +41,8 @@ const beachData = [
   "swimming",
 ];
 
+
+
 app.get("/", (req, res) => {
   res.send("I am backend for Shores");
 });
@@ -54,9 +56,9 @@ app.get("/fireBaseTester", (req, res) => {
 });
 
 app.post("/", async (req, res) => {
-  console.log("Received base64Image:", req.body.base64Image.slice(0, 100));
-
   try {
+    console.log("Received data:", req.body);
+    
     const [result] = await client.labelDetection({
       image: { content: req.body.base64Image },
     });
@@ -66,17 +68,15 @@ app.post("/", async (req, res) => {
       beachData.some((e) => lb.description.toLowerCase().includes(e))
     );
 
-    console.log(
-      "Labels detected:",
-      labels.map((label) => label.description)
-    );
-
     res.json({ isBeachRelated, labels });
   } catch (err) {
     console.error("ERROR:", err);
     res.status(500).send("Error analyzing image");
   }
 });
+
+
+
 
 app.post('/store-token', async (req, res) => {
     const { token } = req.body;
